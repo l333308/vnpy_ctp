@@ -2998,6 +2998,7 @@ void TdApi::OnRspQryInvestorPortfSetting(CThostFtdcInvestorPortfSettingField *pI
 	this->task_queue.push(task);
 };
 
+#ifndef __APPLE__
 void TdApi::OnRspQryInvestorInfoCommRec(CThostFtdcInvestorInfoCommRecField* pInvestorInfoCommRec, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast)
 {
 	Task task = Task();
@@ -3153,6 +3154,7 @@ void TdApi::OnRspQryOffsetSetting(CThostFtdcOffsetSettingField* pOffsetSetting, 
 	task.task_last = bIsLast;
 	this->task_queue.push(task);
 };
+#endif
 
 ///-------------------------------------------------------------------------------------
 ///工作线程从队列中取出数据，转化为python对象后，进行推送
@@ -4104,6 +4106,7 @@ void TdApi::processTask()
 				break;
 			}
 
+#ifndef __APPLE__
 			case ONRSPQRYINVESTORINFOCOMMREC:
 			{
 				this->processRspQryInvestorInfoCommRec(&task);
@@ -4151,6 +4154,7 @@ void TdApi::processTask()
 				this->processRspQryOffsetSetting(&task);
 				break;
 			}
+#endif
             };
         }
     }
@@ -4224,10 +4228,12 @@ void TdApi::processRspUserLogin(Task *task)
 		data["INETime"] = toUtf(task_data->INETime);
 		data["SysVersion"] = toUtf(task_data->SysVersion);
 		data["GFEXTime"] = toUtf(task_data->GFEXTime);
+#ifndef __APPLE__
 		data["LoginDRIdentityID"] = task_data->LoginDRIdentityID;
 		data["UserDRIdentityID"] = task_data->UserDRIdentityID;
 		data["LastLoginTime"] = toUtf(task_data->LastLoginTime);
 		data["ReserveInfo"] = toUtf(task_data->ReserveInfo);
+#endif
 		delete task_data;
 	}
 	dict error;
@@ -5222,7 +5228,9 @@ void TdApi::processRspQryInvestorPosition(Task *task)
 		data["TasPosition"] = task_data->TasPosition;
 		data["TasPositionCost"] = task_data->TasPositionCost;
 		data["InstrumentID"] = toUtf(task_data->InstrumentID);
+#ifndef __APPLE__
 		data["OptionValue"] = task_data->OptionValue;
+#endif
 		delete task_data;
 	}
 	dict error;
@@ -5292,7 +5300,9 @@ void TdApi::processRspQryTradingAccount(Task *task)
 		data["BizType"] = task_data->BizType;
 		data["FrozenSwap"] = task_data->FrozenSwap;
 		data["RemainSwap"] = task_data->RemainSwap;
+#ifndef __APPLE__
 		data["OptionValue"] = task_data->OptionValue;
+#endif
 		delete task_data;
 	}
 	dict error;
@@ -6315,7 +6325,9 @@ void TdApi::processRspQrySecAgentTradingAccount(Task *task)
 		data["BizType"] = task_data->BizType;
 		data["FrozenSwap"] = task_data->FrozenSwap;
 		data["RemainSwap"] = task_data->RemainSwap;
+#ifndef __APPLE__
 		data["OptionValue"] = task_data->OptionValue;
+#endif
 		delete task_data;
 	}
 	dict error;
@@ -10450,6 +10462,7 @@ void TdApi::processRspQryInvestorPortfSetting(Task *task)
 	this->onRspQryInvestorPortfSetting(data, error, task->task_id, task->task_last);
 };
 
+#ifndef __APPLE__
 void TdApi::processRspQryInvestorInfoCommRec(Task* task)
 {
 	gil_scoped_acquire acquire;
@@ -10750,6 +10763,7 @@ void TdApi::processRspQryOffsetSetting(Task* task)
 	}
 	this->onRspQryOffsetSetting(data, error, task->task_id, task->task_last);
 };
+#endif
 
 ///-------------------------------------------------------------------------------------
 ///主动函数
@@ -10757,7 +10771,11 @@ void TdApi::processRspQryOffsetSetting(Task* task)
 
 void TdApi::createFtdcTraderApi(string pszFlowPath, bool bIsProductionMode)
 {
+#ifndef __APPLE__
     this->api = CThostFtdcTraderApi::CreateFtdcTraderApi(pszFlowPath.c_str(), bIsProductionMode);
+#else
+    this->api = CThostFtdcTraderApi::CreateFtdcTraderApi(pszFlowPath.c_str());
+#endif
     this->api->RegisterSpi(this);
 };
 
@@ -10882,6 +10900,7 @@ int TdApi::submitUserSystemInfo(const dict& req)
 	return i;
 };
 
+#ifndef __APPLE__
 int TdApi::registerWechatUserSystemInfo(const dict& req)
 {
 	CThostFtdcWechatUserSystemInfoField myreq = CThostFtdcWechatUserSystemInfoField();
@@ -10915,6 +10934,7 @@ int TdApi::submitWechatUserSystemInfo(const dict& req)
 	int i = this->api->SubmitWechatUserSystemInfo(&myreq);
 	return i;
 };
+#endif
 
 int TdApi::reqAuthenticate(const dict &req, int reqid)
 {
@@ -11644,6 +11664,7 @@ int TdApi::reqQryInstrumentCommissionRate(const dict &req, int reqid)
 	return i;
 };
 
+#ifndef __APPLE__
 int TdApi::reqQryUserSession(const dict& req, int reqid)
 {
 	CThostFtdcQryUserSessionField myreq = CThostFtdcQryUserSessionField();
@@ -11655,6 +11676,7 @@ int TdApi::reqQryUserSession(const dict& req, int reqid)
 	int i = this->api->ReqQryUserSession(&myreq, reqid);
 	return i;
 };
+#endif
 
 int TdApi::reqQryExchange(const dict &req, int reqid)
 {
@@ -12670,6 +12692,7 @@ int TdApi::reqQryInvestorPortfSetting(const dict &req, int reqid)
 	return i;
 };
 
+#ifndef __APPLE__
 int TdApi::reqQryInvestorInfoCommRec(const dict& req, int reqid)
 {
 	CThostFtdcQryInvestorInfoCommRecField myreq = CThostFtdcQryInvestorInfoCommRecField();
@@ -12743,6 +12766,7 @@ int TdApi::reqQryOffsetSetting(const dict& req, int reqid)
 	int i = this->api->ReqQryOffsetSetting(&myreq, reqid);
 	return i;
 };
+#endif
 
 ///-------------------------------------------------------------------------------------
 ///pybind11封装
@@ -14625,6 +14649,7 @@ public:
 		}
 	};
 
+#ifndef __APPLE__
 	void onRspQryInvestorInfoCommRec(const dict& data, const dict& error, int reqid, bool last) override
 	{
 		try
@@ -14720,6 +14745,7 @@ public:
 			cout << e.what() << endl;
 		}
 	};
+#endif
 
 };
 
@@ -14744,8 +14770,10 @@ PYBIND11_MODULE(vnctptd, m)
         .def("subscribePrivateTopic", &TdApi::subscribePrivateTopic)
 		.def("registerUserSystemInfo", &TdApi::registerUserSystemInfo)
 		.def("submitUserSystemInfo", &TdApi::submitUserSystemInfo)
+#ifndef __APPLE__
 		.def("registerWechatUserSystemInfo", &TdApi::registerWechatUserSystemInfo)
 		.def("submitWechatUserSystemInfo", &TdApi::submitWechatUserSystemInfo)
+#endif
 
 		.def("reqAuthenticate", &TdApi::reqAuthenticate)
 		.def("reqUserLogin", &TdApi::reqUserLogin)
@@ -14783,7 +14811,9 @@ PYBIND11_MODULE(vnctptd, m)
 		.def("reqQryTradingCode", &TdApi::reqQryTradingCode)
 		.def("reqQryInstrumentMarginRate", &TdApi::reqQryInstrumentMarginRate)
 		.def("reqQryInstrumentCommissionRate", &TdApi::reqQryInstrumentCommissionRate)
+#ifndef __APPLE__
 		.def("reqQryUserSession", &TdApi::reqQryUserSession)
+#endif
 		.def("reqQryExchange", &TdApi::reqQryExchange)
 		.def("reqQryProduct", &TdApi::reqQryProduct)
 		.def("reqQryInstrument", &TdApi::reqQryInstrument)
@@ -14860,11 +14890,13 @@ PYBIND11_MODULE(vnctptd, m)
 		.def("reqQryRULEInterParameter", &TdApi::reqQryRULEInterParameter)
 		.def("reqQryInvestorProdRULEMargin", &TdApi::reqQryInvestorProdRULEMargin)
 		.def("reqQryInvestorPortfSetting", &TdApi::reqQryInvestorPortfSetting)
+#ifndef __APPLE__
 		.def("reqQryInvestorInfoCommRec", &TdApi::reqQryInvestorInfoCommRec)
 		.def("reqQryCombLeg", &TdApi::reqQryCombLeg)
 		.def("reqOffsetSetting", &TdApi::reqOffsetSetting)
 		.def("reqCancelOffsetSetting", &TdApi::reqCancelOffsetSetting)
 		.def("reqQryOffsetSetting", &TdApi::reqQryOffsetSetting)
+#endif
 
 		.def("onFrontConnected", &TdApi::onFrontConnected)
 		.def("onFrontDisconnected", &TdApi::onFrontDisconnected)
@@ -15022,6 +15054,7 @@ PYBIND11_MODULE(vnctptd, m)
 		.def("onRspQryRULEInterParameter", &TdApi::onRspQryRULEInterParameter)
 		.def("onRspQryInvestorProdRULEMargin", &TdApi::onRspQryInvestorProdRULEMargin)
 		.def("onRspQryInvestorPortfSetting", &TdApi::onRspQryInvestorPortfSetting)
+#ifndef __APPLE__
 		.def("onRspQryInvestorInfoCommRec", &TdApi::onRspQryInvestorInfoCommRec)
 		.def("onRspQryCombLeg", &TdApi::onRspQryCombLeg)
 		.def("onRspOffsetSetting", &TdApi::onRspOffsetSetting)
@@ -15030,5 +15063,6 @@ PYBIND11_MODULE(vnctptd, m)
 		.def("onErrRtnOffsetSetting", &TdApi::onErrRtnOffsetSetting)
 		.def("onErrRtnCancelOffsetSetting", &TdApi::onErrRtnCancelOffsetSetting)
 		.def("onRspQryOffsetSetting", &TdApi::onRspQryOffsetSetting)
+#endif
 		;
 }

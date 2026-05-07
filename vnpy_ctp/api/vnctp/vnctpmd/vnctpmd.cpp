@@ -358,10 +358,12 @@ void MdApi::processRspUserLogin(Task *task)
 		data["INETime"] = toUtf(task_data->INETime);
 		data["SysVersion"] = toUtf(task_data->SysVersion);
 		data["GFEXTime"] = toUtf(task_data->GFEXTime);
+#ifndef __APPLE__
 		data["LoginDRIdentityID"] = task_data->LoginDRIdentityID;
 		data["UserDRIdentityID"] = task_data->UserDRIdentityID;
 		data["LastLoginTime"] = toUtf(task_data->LastLoginTime);
 		data["ReserveInfo"] = toUtf(task_data->ReserveInfo);
+#endif
 		delete task_data;
 	}
 	dict error;
@@ -611,7 +613,11 @@ void MdApi::processRtnForQuoteRsp(Task *task)
 
 void MdApi::createFtdcMdApi(string pszFlowPath, bool bIsProductionMode)
 {
+#ifndef __APPLE__
 	this->api = CThostFtdcMdApi::CreateFtdcMdApi(pszFlowPath.c_str(), false, false, bIsProductionMode);
+#else
+	this->api = CThostFtdcMdApi::CreateFtdcMdApi(pszFlowPath.c_str(), false, false);
+#endif
 	this->api->RegisterSpi(this);
 };
 

@@ -682,6 +682,7 @@ public:
 	///投资者新型组合保证金开关查询响应
 	virtual void OnRspQryInvestorPortfSetting(CThostFtdcInvestorPortfSettingField* pInvestorPortfSetting, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast);
 
+#ifndef __APPLE__
 	///投资者申报费阶梯收取记录查询响应
 	virtual void OnRspQryInvestorInfoCommRec(CThostFtdcInvestorInfoCommRecField* pInvestorInfoCommRec, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast);
 
@@ -705,6 +706,7 @@ public:
 
 	///投资者对冲设置查询响应
 	virtual void OnRspQryOffsetSetting(CThostFtdcOffsetSettingField* pOffsetSetting, CThostFtdcRspInfoField* pRspInfo, int nRequestID, bool bIsLast);
+#endif
     //-------------------------------------------------------------------------------------
     //task：任务
     //-------------------------------------------------------------------------------------
@@ -1022,6 +1024,7 @@ public:
 
 	void processRspQryInvestorPortfSetting(Task *task);
 
+#ifndef __APPLE__
 	void processRspQryInvestorInfoCommRec(Task* task);
 
 	void processRspQryCombLeg(Task* task);
@@ -1037,6 +1040,7 @@ public:
 	void processErrRtnCancelOffsetSetting(Task* task);
 
 	void processRspQryOffsetSetting(Task* task);
+#endif
 
     //-------------------------------------------------------------------------------------
     //data：回调函数的数据字典
@@ -1358,6 +1362,7 @@ public:
 
 	virtual void onRspQryInvestorPortfSetting(const dict &data, const dict &error, int reqid, bool last) {};
 
+#ifndef __APPLE__
 	virtual void onRspQryInvestorInfoCommRec(const dict& data, const dict& error, int reqid, bool last) {};
 
 	virtual void onRspQryCombLeg(const dict& data, const dict& error, int reqid, bool last) {};
@@ -1373,6 +1378,7 @@ public:
 	virtual void onErrRtnCancelOffsetSetting(const dict& data, const dict& error) {};
 
 	virtual void onRspQryOffsetSetting(const dict& data, const dict& error, int reqid, bool last) {};
+#endif
 
     //-------------------------------------------------------------------------------------
     //req:主动函数的请求字典
@@ -1408,9 +1414,11 @@ public:
 
 	int submitUserSystemInfo(const dict& req);
 
+#ifndef __APPLE__
 	int registerWechatUserSystemInfo(const dict& req);
 
 	int submitWechatUserSystemInfo(const dict& req);
+#endif
 
 	int reqAuthenticate(const dict &req, int reqid);
 
@@ -1484,7 +1492,9 @@ public:
 
 	int reqQryInstrumentCommissionRate(const dict &req, int reqid);
 
+#ifndef __APPLE__
 	int reqQryUserSession(const dict& req, int reqid);
+#endif
 
 	int reqQryExchange(const dict &req, int reqid);
 
@@ -1638,6 +1648,7 @@ public:
 
 	int reqQryInvestorPortfSetting(const dict &req, int reqid);
 
+#ifndef __APPLE__
 	int reqQryInvestorInfoCommRec(const dict& req, int reqid);
 
 	int reqQryCombLeg(const dict& req, int reqid);
@@ -1647,4 +1658,5 @@ public:
 	int reqCancelOffsetSetting(const dict& req, int reqid);
 
 	int reqQryOffsetSetting(const dict& req, int reqid);
+#endif
 };

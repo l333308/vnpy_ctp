@@ -31,14 +31,7 @@ message('构建目标系统: ' + host_machine.system())
 # 初始化变量
 thostmduserapi_lib = []
 thosttraderapi_lib = []
-extra_cpp_args = []
-extra_link_args = []
-
-# 初始化库变量
-thostmduserapi_lib = []
-thosttraderapi_lib = []
-
-# 初始化其他编译选项
+extra_cpp_args = ['-I' + pybind11_include_dir]
 extra_link_args = []
 install_rpath_value = ''
 
@@ -55,7 +48,6 @@ if host_machine.system() == 'windows'
   include_dirs = include_directories(
     'vnpy_ctp/api/include',
     'vnpy_ctp/api/vnctp',
-    pybind11_include_dir,
   )
   
   # 定义CTP库
@@ -69,7 +61,7 @@ if host_machine.system() == 'windows'
 # 设置Mac特定编译选项
 elif host_machine.system() == 'darwin'
   # Mac编译器设置
-  extra_cpp_args = [
+  extra_cpp_args += [
     '-std=c++11',
     '-mmacosx-version-min=10.12',
   ]
@@ -88,7 +80,6 @@ elif host_machine.system() == 'darwin'
   include_dirs = include_directories(
     'vnpy_ctp/api/include/mac',
     'vnpy_ctp/api/vnctp',
-    pybind11_include_dir,
   )
   
   # 定义Mac Framework依赖
@@ -111,7 +102,7 @@ elif host_machine.system() == 'darwin'
 # 设置Linux特定编译选项
 else  # Linux
   # Linux编译器设置
-  extra_cpp_args = [
+  extra_cpp_args += [
     '-std=c++17',
     '-O3',
     '-Wno-delete-incomplete',
@@ -129,7 +120,6 @@ else  # Linux
   include_dirs = include_directories(
     'vnpy_ctp/api/include',
     'vnpy_ctp/api/vnctp',
-    pybind11_include_dir,
   )
   
   # 定义CTP库
@@ -141,6 +131,32 @@ else  # Linux
                                        required: true)
 endif
 
+# 设置平台特定链接参数
+if host_machine.system() == 'darwin'
+  framework_dir = meson.current_source_dir() / 'vnpy_ctp/api'
+  md_link_args = extra_link_args + [
+    '-F' + framework_dir,
+    '-framework', 'thostmduserapi_se',
+    '-Wl,-rpath,' + framework_dir,
+  ]
+  td_link_args = extra_link_args + [
+    '-F' + framework_dir,
+    '-framework', 'thosttraderapi_se',
+    '-Wl,-rpath,' + framework_dir,
+  ]
+else
+  md_link_args = extra_link_args + [
+    '-L' + lib_dir,
+    '-lthostmduserapi_se',
+    '-Wl,-rpath,$ORIGIN',
+  ]
+  td_link_args = extra_link_args + [
+    '-L' + lib_dir,
+    '-lthosttraderapi_se',
+    '-Wl,-rpath,$ORIGIN',
+  ]
+endif
+
 # 创建MD模块扩展
 md_module = py.extension_module(
   'vnctpmd',
@@ -148,11 +164,7 @@ md_module = py.extension_module(
   include_directories: include_dirs,
   dependencies: [py_dep],
   cpp_args: extra_cpp_args,
-  link_args: extra_link_args + [
-    '-L' + lib_dir,
-    '-lthostmduserapi_se',
-    '-Wl,-rpath,$ORIGIN'
-  ],
+  link_args: md_link_args,
   install: true,
   install_rpath: '$ORIGIN',
   subdir: 'vnpy_ctp/api'
@@ -165,11 +177,7 @@ td_module = py.extension_module(
   include_directories: include_dirs,
   dependencies: [py_dep],
   cpp_args: extra_cpp_args,
-  link_args: extra_link_args + [
-    '-L' + lib_dir,
-    '-lthosttraderapi_se',
-    '-Wl,-rpath,$ORIGIN'
-  ],
+  link_args: td_link_args,
   install: true,
   install_rpath: '$ORIGIN',
   subdir: 'vnpy_ctp/api'
