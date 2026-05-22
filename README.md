@@ -11,39 +11,144 @@
     <img src ="https://img.shields.io/github/license/vnpy/vnpy.svg?color=orange"/>
 </p>
 
-## 说明
+## 项目概述
 
-基于CTP期货版的6.7.11接口封装开发，接口中自带的是【穿透式实盘、评测环境合并】的dll文件。
+`vnpy_ctp` 是 [VeighNa](https://www.vnpy.com)（vnpy）量化交易框架的 **CTP 期货接口网关包**，基于上期技术 CTP 期货版 **6.7.11** 官方 API 封装开发。接口中自带的是【穿透式实盘、评测环境合并】的动态库文件（`thostmduserapi_se` / `thosttraderapi_se`）。
+
+项目通过 **pybind11** 将 CTP 官方 C++ API 封装为 Python 扩展模块（`MdApi` 行情接口、`TdApi` 交易接口），并实现了符合 VeighNa 框架规范的 `CtpGateway` 网关类，可直接接入 VeighNa 的事件引擎、策略模块和图形界面。
+
+## 架构设计
+
+```
+VeighNa MainEngine（事件驱动引擎）
+       │
+       ▼
+CtpGateway（ctp_gateway.py - VeighNa 网关实现）
+       │
+       ├── CtpMdApi（行情：连接、登录、订阅、Tick 推送）
+       │       │
+       │       ▼
+       │   vnctpmd（pybind11 C++ 扩展 → CThostFtdcMdSpi）
+       │       │
+       │       ▼
+       │   thostmduserapi_se（CTP 官方行情动态库）
+       │
+       └── CtpTdApi（交易：认证、登录、下单、撤单、查询）
+               │
+               ▼
+           vnctptd（pybind11 C++ 扩展 → CThostFtdcTraderSpi）
+               │
+               ▼
+           thosttraderapi_se（CTP 官方交易动态库）
+```
+
+**线程模型**：CTP 回调在 C++ 端写入 `TaskQueue`，由独立工作线程取出后通过 `PYBIND11_OVERLOAD` 调用 Python 重写方法，避免在回调线程直接操作 Python GIL。
+
+## 技术栈
+
+| 类别 | 技术 |
+|------|------|
+| 量化框架 | VeighNa (`vnpy>=3.0.0`) |
+| 语言 | Python 3.10+、C++17（Mac 部分 C++11） |
+| C++/Python 绑定 | pybind11 ≥2.13.6 |
+| 构建系统 | Meson ≥1.7.0 + meson-python（PEP 517） |
+| 代码质量 | Ruff（lint）、Mypy（类型检查） |
+| 测试 | pytest（SimNow 集成测试） |
+| CI | GitHub Actions（ruff + mypy + uv build） |
+| 期货 API | 上期技术 CTP 6.7.11（穿透式 `_se` 版） |
+
+## 项目结构
+
+```
+vnpy_ctp/
+├── meson.build                    # Meson 构建配置（编译 C++ 扩展、安装动态库）
+├── pyproject.toml                 # Python 包元数据、构建后端、工具链配置
+├── README.md
+├── CHANGELOG.md                   # 版本变更记录
+├── LICENSE                        # MIT 许可证
+│
+├── vnpy_ctp/                      # 主 Python 包
+│   ├── __init__.py                # 导出 CtpGateway
+│   ├── api/                       # CTP 底层 API 封装层
+│   │   ├── __init__.py            # 导出 MdApi, TdApi, ctp_constant
+│   │   ├── ctp_constant.py        # CTP 常量定义（由生成器自动生成）
+│   │   ├── vnctp/                 # pybind11 C++ 源代码
+│   │   │   ├── vnctp.h            # 公共逻辑：TaskQueue、字典转换、GBK/UTF-8
+│   │   │   ├── vnctpmd/           # 行情扩展模块（vnctpmd.cpp/.h）
+│   │   │   └── vnctptd/          # 交易扩展模块（vnctptd.cpp/.h）
+│   │   ├── generator/             # CTP 头文件 → C++/Python 绑定代码生成器
+│   │   ├── include/               # CTP 官方 C++ 头文件
+│   │   │   ├── ctp/               # Windows/Linux 头文件
+│   │   │   └── mac/ctp/           # macOS 专用头文件
+│   │   ├── libs/                  # Windows 静态链接库（.lib）
+│   │   ├── *.dll / *.so           # 预编译 CTP 动态库（Windows/Linux）
+│   │   └── *.framework/           # macOS Framework 形式 CTP 库
+│   └── gateway/
+│       └── ctp_gateway.py         # CtpGateway 网关实现（约 900 行）
+│
+├── script/
+│   └── run.py                     # VeighNa Trader 启动脚本
+├── test/
+│   ├── test_md.py                 # 行情 API 测试（需 SimNow 账号）
+│   └── test_td.py                 # 交易 API 测试（需 SimNow 账号）
+├── docs/
+│   ├── usage-guide.md             # 完整使用指南（SimNow 连接、策略开发等）
+│   └── mac-install.md             # Mac 编译安装指南
+└── .github/
+    └── workflows/pythonapp.yml    # CI 工作流
+```
 
 ## 安装
 
-安装环境推荐基于4.0.0版本以上的【[**VeighNa Studio**](https://www.vnpy.com)】。
+### 环境要求
 
-直接使用pip命令：
+- Python ≥ 3.10（支持 3.10、3.11、3.12、3.13）
+- 推荐基于 4.0.0 版本以上的 [VeighNa Studio](https://www.vnpy.com)
 
-```
+### PyPI 安装（Windows/Linux）
+
+```bash
 pip install vnpy_ctp
 ```
 
-或者下载源代码后，解压后在cmd中运行：
+### 源码安装
 
-```
+源码编译需要 C++ 编译器：**Visual Studio**（Windows）、**GCC**（Linux）、**Xcode**（Mac）。
+
+```bash
+git clone https://github.com/vnpy/vnpy_ctp.git
+cd vnpy_ctp
 pip install .
 ```
 
-使用源代码安装时需要进行C++编译，因此在执行上述命令之前请确保已经安装了【Visual Studio（Windows）】、【GCC（Linux）】、【XCode（Mac）】编译器。
+### 开发模式安装
 
-如果需要以**开发模式**安装到当前Python环境，可以使用下述命令：
+```bash
+pip install -e . --no-build-isolation --config-settings=build-dir=./vnpy_ctp/api
+```
 
+### macOS 注意事项
+
+macOS 的 CTP 库采用 framework 目录结构，**无法从 PyPI 安装预编译 wheel**，必须本地源码编译。安装后需执行以下命令去除 quarantine 标记：
+
+```bash
+xattr -rd com.apple.quarantine /path/to/venv/lib/python3.x/site-packages/vnpy_ctp/
 ```
-pip install -e . --no-build-isolation --config-settings=build-dir=.\vnpy_ctp\api
-```
+
+macOS 底层 CTP API 版本为 **6.7.7**，相对 6.7.11 缺少部分边缘接口（不影响核心交易功能）。详细说明见 [Mac 安装指南](docs/mac-install.md)。
 
 ## 使用
 
-以脚本方式启动（script/run.py）：
+### 快速验证安装
 
+```bash
+python -c "from vnpy_ctp import CtpGateway; print('OK:', CtpGateway.default_name)"
+# 期望输出: OK: CTP
 ```
+
+### 脚本方式启动
+
+```python
 from vnpy.event import EventEngine
 from vnpy.trader.engine import MainEngine
 from vnpy.trader.ui import MainWindow, create_qapp
@@ -58,7 +163,7 @@ def main():
     event_engine = EventEngine()
     main_engine = MainEngine(event_engine)
     main_engine.add_gateway(CtpGateway)
-    
+
     main_window = MainWindow(main_engine, event_engine)
     main_window.showMaximized()
 
@@ -69,20 +174,60 @@ if __name__ == "__main__":
     main()
 ```
 
-## Mac系统支持
+### SimNow 仿真连接
 
-由于新版本CTP的Mac系统API项目结构发生了较大变化，改为了使用framework目录的结构，因此无法再直接从PyPI下载预编译好的wheel二进制包进行安装。
+连接参数配置文件位于 `~/.vntrader/connect_ctp.json`，SimNow 测试环境配置示例：
 
-用户需要克隆（或下载）本仓库的源代码到本地后自行编译安装，具体命令如下：
+| 参数 | 值 |
+|------|-----|
+| 经纪商代码 | `9999` |
+| 产品名称 | `simnow_client_test` |
+| 授权编码 | `0000000000000000` |
+| 交易服务器 | `180.168.146.187:10130` |
+| 行情服务器 | `180.168.146.187:10131` |
 
+更多使用说明参见 [使用指南](docs/usage-guide.md)。
+
+## 测试
+
+项目使用 pytest 进行集成测试，测试需要真实的 SimNow 账号和网络连接：
+
+```bash
+pip install pytest
+pytest test/ -v
 ```
-git clone https://github.com/vnpy/vnpy_ctp.git
 
-cd vnpy_ctp
+> 注意：测试文件中的 `UserID` / `Password` 需替换为自己的 SimNow 账号信息。
 
-pip3 install .
-```
+## CTP API 版本
 
-相关注意事项如下：
+| 平台 | API 版本 | 说明 |
+|------|---------|------|
+| Windows / Linux | 6.7.11 | 穿透式实盘 + 评测环境合并 |
+| macOS | 6.7.7 | Framework 形式，部分边缘接口缺失 |
 
-源码编译需要依赖XCode开发工具中的C++编译器，请务必先安装好。
+### 代码生成器
+
+升级 CTP 版本时使用 `vnpy_ctp/api/generator/` 下的生成脚本：
+
+1. 替换 `include/` 目录中的官方头文件和预编译库
+2. 运行 `generate_data_type.py` → 生成 `ctp_constant.py`
+3. 运行 `generate_struct.py` → 生成结构体定义
+4. 运行 `generate_api_functions.py` → 生成 C++ 绑定代码
+5. 重新编译安装
+
+## 版本历史
+
+完整变更记录见 [CHANGELOG.md](CHANGELOG.md)，主要里程碑：
+
+- **6.7.11.x** — API 升级至 6.7.11，优化撤单状态映射、登录兼容性
+- **6.7.7.x** — 适配 vnpy 4.0 框架，API 升级至 6.7.7
+- **6.7.2.x** — API 升级至 6.7.2，类型声明使用内置类型
+- **6.6.9.x** — API 升级至 6.6.9，支持大商所毫秒级时间戳
+- **6.6.7.x** — 首次增加 macOS 支持，使用 zoneinfo 替换 pytz
+
+## 许可证
+
+MIT License — Copyright (c) 2015-present, Xiaoyou Chen
+
+详见 [LICENSE](LICENSE) 文件。
